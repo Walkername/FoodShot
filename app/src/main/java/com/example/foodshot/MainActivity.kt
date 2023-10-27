@@ -37,6 +37,10 @@ import androidx.compose.ui.unit.sp
 import com.example.foodshot.ui.theme.FoodShotTheme
 import com.example.foodshot.ui.theme.Titan
 
+const val ICON_COLOR = 0xfffef1ce
+const val CIRCLE_BUTTON_COLOR = 0x14f8f4e8
+const val APP_NAME_COLOR = 0xfff8f4e8
+
 class MainActivity : ComponentActivity() {
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -53,38 +57,43 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Image(
-                        contentScale = ContentScale.FillWidth,
-                        modifier = Modifier.fillMaxSize(),
-                        bitmap = ImageBitmap.imageResource(R.drawable.background_pic),
-                        contentDescription = "background_pic"
-                    )
-                    Column (
-                    ) {
-                        Box(
-                            contentAlignment = Alignment.BottomCenter,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(3.4f)
-                        ) {
-                            Text(
-                                text = "FoodShot",
-                                color = Color(0xfff8f4e8),
-                                fontSize = 36.sp,
-                                fontFamily = Titan,
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        Menu(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f)
-                                .padding(top = 30.dp)
-                        )
-                    }
+                    MainScreen()
                 }
             }
         }
+    }
+}
+
+@Composable
+fun MainScreen() {
+    Image(
+        contentScale = ContentScale.FillWidth,
+        modifier = Modifier.fillMaxSize(),
+        bitmap = ImageBitmap.imageResource(R.drawable.background_pic),
+        contentDescription = "background_pic"
+    )
+    Column (
+    ) {
+        Box(
+            contentAlignment = Alignment.BottomCenter,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(3.4f)
+        ) {
+            Text(
+                text = "FoodShot",
+                color = Color(APP_NAME_COLOR),
+                fontSize = 36.sp,
+                fontFamily = Titan,
+                textAlign = TextAlign.Center
+            )
+        }
+        Menu(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(top = 30.dp)
+        )
     }
 }
 
@@ -94,22 +103,20 @@ fun Menu(modifier: Modifier) {
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        val buttons = arrayOf("history", "camera", "gallery")
         Box(
             modifier = Modifier
                 .size(90.dp)
                 .clip(CircleShape)
-                .background(Color(0x14fef1ce))
+                .background(Color(CIRCLE_BUTTON_COLOR))
         ) {
             IconButton(
                 modifier = Modifier.size(300.dp),
-                colors = IconButtonDefaults.iconButtonColors(contentColor = Color(0xfffef1ce)),
-                onClick = { /*TODO: import camera API to take a photo*/ }
+                colors = IconButtonDefaults.iconButtonColors(contentColor = Color(ICON_COLOR)),
+                onClick = { /*TODO: create navigation to HistoryActivity*/ }
             ) {
                 Icon(
                     modifier = Modifier.size(53.dp),
                     painter = painterResource(R.drawable.history),
-                    //imageVector = ImageVector.vectorResource(R.drawable.ic_launcher_background),
                     contentDescription = "history"
                 )
             }
@@ -118,17 +125,16 @@ fun Menu(modifier: Modifier) {
             modifier = Modifier
                 .size(90.dp)
                 .clip(CircleShape)
-                .background(Color(0x14fef1ce))
+                .background(Color(CIRCLE_BUTTON_COLOR))
         ) {
             IconButton(
                 modifier = Modifier.size(300.dp),
-                colors = IconButtonDefaults.iconButtonColors(contentColor = Color(0xfffef1ce)),
+                colors = IconButtonDefaults.iconButtonColors(contentColor = Color(ICON_COLOR)),
                 onClick = { /*TODO: import camera API to take a photo*/ }
             ) {
                 Icon(
                     modifier = Modifier.size(54.dp),
                     painter = painterResource(R.drawable.camera),
-                    //imageVector = ImageVector.vectorResource(R.drawable.ic_launcher_background),
                     contentDescription = "camera"
                 )
             }
@@ -137,17 +143,16 @@ fun Menu(modifier: Modifier) {
             modifier = Modifier
                 .size(90.dp)
                 .clip(CircleShape)
-                .background(Color(0x14fef1ce))
+                .background(Color(CIRCLE_BUTTON_COLOR))
         ) {
             IconButton(
                 modifier = Modifier.size(300.dp),
-                colors = IconButtonDefaults.iconButtonColors(contentColor = Color(0xfffef1ce)),
-                onClick = { /*TODO: import camera API to take a photo*/ }
+                colors = IconButtonDefaults.iconButtonColors(contentColor = Color(ICON_COLOR)),
+                onClick = { /*TODO: import gallery from phone*/ }
             ) {
                 Icon(
                     modifier = Modifier.size(58.dp),
                     painter = painterResource(R.drawable.gallery),
-                    //imageVector = ImageVector.vectorResource(R.drawable.ic_launcher_background),
                     contentDescription = "gallery"
                 )
             }
@@ -160,34 +165,7 @@ fun Menu(modifier: Modifier) {
 fun MainActivityPreview() {
     FoodShotTheme {
         Box(modifier = Modifier.fillMaxSize()) {
-            Image(
-                modifier = Modifier.fillMaxSize(),
-                bitmap = ImageBitmap.imageResource(R.drawable.background_pic),
-                contentDescription = "background_pic"
-            )
-            Column (
-            ) {
-                Box(
-                    contentAlignment = Alignment.BottomCenter,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(3.4f)
-                ) {
-                    Text(
-                        text = "FoodShot",
-                        color = Color(0xfff8f4e8),
-                        fontSize = 36.sp,
-                        fontFamily = Titan,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                Menu(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(top = 30.dp)
-                )
-            }
+            MainScreen()
         }
     }
 }
