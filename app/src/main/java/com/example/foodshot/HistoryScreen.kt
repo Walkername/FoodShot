@@ -15,15 +15,6 @@ import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.foodshot.ui.theme.FoodShotTheme
 
-class HistoryActivity: ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            HistoryScreen()
-        }
-    }
-}
-
 @Composable
 fun HistoryScreen() {
     FoodShotTheme {

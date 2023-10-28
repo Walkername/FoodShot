@@ -1,9 +1,17 @@
 package com.example.foodshot
 
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
+import androidx.camera.view.CameraController
+import androidx.camera.view.LifecycleCameraController
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +30,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,6 +45,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 import com.example.foodshot.ui.theme.FoodShotTheme
 import com.example.foodshot.ui.theme.Titan
 
@@ -42,30 +59,107 @@ const val CIRCLE_BUTTON_COLOR = 0x14f8f4e8
 const val APP_NAME_COLOR = 0xfff8f4e8
 
 class MainActivity : ComponentActivity() {
-
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) {}
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         setContent {
+            val navController = rememberNavController()
             FoodShotTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                NavHost(
+                    navController = navController,
+                    startDestination = "MainScreen"
                 ) {
-                    MainScreen()
+                    composable("MainScreen") {
+                        // A surface container using the 'background' color from the theme
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.background
+                        ) {
+                            MainScreen(
+                                { navController.navigate("HistoryScreen") },
+                                { navController.navigate("CameraScreen") },
+                                { navController.navigate("GalleryScreen") }
+                            )
+                        }
+                    }
+
+                    composable("HistoryScreen") {
+                        HistoryScreen()
+                        /* TODO: create design for HistoryScreen */
+                    }
+
+                    composable("CameraScreen") {
+                        //requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                        if (!hasRequiredPermission()) {
+                            ActivityCompat.requestPermissions(
+                                this@MainActivity, CAMERAX_PERMISSION, 0
+                            )
+                        }
+                        val controller = remember {
+                            LifecycleCameraController(applicationContext).apply {
+                                setEnabledUseCases(
+                                    CameraController.IMAGE_CAPTURE
+                                )
+                            }
+                        }
+                        val viewModel = viewModel<MainViewModel>()
+                        val bitmaps by viewModel.bitmaps.collectAsState()
+
+                        CameraScreen(
+                            controller = controller,
+                            takePhoto = { takePhoto(controller, viewModel::onTakePhoto) },
+                            backToMainScreen = { navController.navigate("MainScreen") }
+                        )
+                    }
+
+                    composable("GalleryScreen") {
+
+                    }
                 }
+
             }
         }
+    }
+
+    private fun hasRequiredPermission(): Boolean {
+        return CAMERAX_PERMISSION.all {
+            ContextCompat.checkSelfPermission(
+                    applicationContext,
+                    it
+                    ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    companion object {
+        private val CAMERAX_PERMISSION = arrayOf(android.Manifest.permission.CAMERA)
+    }
+
+    private fun takePhoto(
+        controller: LifecycleCameraController,
+        onPhotoTaken: (Bitmap) -> Unit
+    ) {
+        controller.takePicture(
+            ContextCompat.getMainExecutor(applicationContext),
+            object: ImageCapture.OnImageCapturedCallback() {
+                override fun onCaptureSuccess(image: ImageProxy) {
+                    super.onCaptureSuccess(image)
+                    onPhotoTaken(image.toBitmap())
+                }
+
+                override fun onError(exception: ImageCaptureException) {
+                    super.onError(exception)
+                    Log.e("Camera", "Couldn't take photo: ", exception)
+                }
+            }
+        )
     }
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(
+    onClickHistory: () -> Unit,
+    onClickCamera: () -> Unit,
+    onClickGallery: () -> Unit
+) {
     Image(
         contentScale = ContentScale.FillWidth,
         modifier = Modifier.fillMaxSize(),
@@ -89,6 +183,9 @@ fun MainScreen() {
             )
         }
         Menu(
+            onClickHistory = onClickHistory,
+            onClickCamera = onClickCamera,
+            onClickGallery = onClickGallery,
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
@@ -98,7 +195,12 @@ fun MainScreen() {
 }
 
 @Composable
-fun Menu(modifier: Modifier) {
+fun Menu(
+    modifier: Modifier,
+    onClickHistory: () -> Unit,
+    onClickCamera: () -> Unit,
+    onClickGallery: () -> Unit
+) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.SpaceEvenly
@@ -112,7 +214,7 @@ fun Menu(modifier: Modifier) {
             IconButton(
                 modifier = Modifier.size(300.dp),
                 colors = IconButtonDefaults.iconButtonColors(contentColor = Color(ICON_COLOR)),
-                onClick = { /*TODO: create navigation to HistoryActivity*/ }
+                onClick = { onClickHistory() /*TODO: create navigation to HistoryActivity*/ }
             ) {
                 Icon(
                     modifier = Modifier.size(53.dp),
@@ -130,7 +232,7 @@ fun Menu(modifier: Modifier) {
             IconButton(
                 modifier = Modifier.size(300.dp),
                 colors = IconButtonDefaults.iconButtonColors(contentColor = Color(ICON_COLOR)),
-                onClick = { /*TODO: import camera API to take a photo*/ }
+                onClick = { onClickCamera() /*TODO: import camera API to take a photo*/ }
             ) {
                 Icon(
                     modifier = Modifier.size(54.dp),
@@ -148,7 +250,7 @@ fun Menu(modifier: Modifier) {
             IconButton(
                 modifier = Modifier.size(300.dp),
                 colors = IconButtonDefaults.iconButtonColors(contentColor = Color(ICON_COLOR)),
-                onClick = { /*TODO: import gallery from phone*/ }
+                onClick = { onClickGallery() /*TODO: import gallery from phone*/ }
             ) {
                 Icon(
                     modifier = Modifier.size(58.dp),
@@ -165,7 +267,7 @@ fun Menu(modifier: Modifier) {
 fun MainActivityPreview() {
     FoodShotTheme {
         Box(modifier = Modifier.fillMaxSize()) {
-            MainScreen()
+            //MainScreen(/* Is not possible to pass parameters */)
         }
     }
 }
