@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
@@ -64,6 +63,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
             FoodShotTheme {
+                val viewModel = viewModel<MainViewModel>()
+                val bitmaps by viewModel.bitmaps.collectAsState()
                 NavHost(
                     navController = navController,
                     startDestination = "MainScreen"
@@ -101,9 +102,6 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                         }
-                        val viewModel = viewModel<MainViewModel>()
-                        val bitmaps by viewModel.bitmaps.collectAsState()
-
                         CameraScreen(
                             controller = controller,
                             takePhoto = { takePhoto(controller, viewModel::onTakePhoto) },
@@ -112,7 +110,11 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("GalleryScreen") {
-
+                        GalleryScreen(
+                            bitmaps = bitmaps,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                        )
                     }
                 }
 
