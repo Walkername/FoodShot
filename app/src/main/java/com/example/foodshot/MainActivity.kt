@@ -168,8 +168,7 @@ fun MainScreen(
         bitmap = ImageBitmap.imageResource(R.drawable.background_pic),
         contentDescription = "background_pic"
     )
-    Column (
-    ) {
+    Column {
         Box(
             contentAlignment = Alignment.BottomCenter,
             modifier = Modifier
@@ -216,7 +215,7 @@ fun Menu(
             IconButton(
                 modifier = Modifier.size(300.dp),
                 colors = IconButtonDefaults.iconButtonColors(contentColor = Color(ICON_COLOR)),
-                onClick = { onClickHistory() /*TODO: create navigation to HistoryActivity*/ }
+                onClick = { onClickHistory() }
             ) {
                 Icon(
                     modifier = Modifier.size(53.dp),
@@ -234,7 +233,7 @@ fun Menu(
             IconButton(
                 modifier = Modifier.size(300.dp),
                 colors = IconButtonDefaults.iconButtonColors(contentColor = Color(ICON_COLOR)),
-                onClick = { onClickCamera() /*TODO: import camera API to take a photo*/ }
+                onClick = { onClickCamera() }
             ) {
                 Icon(
                     modifier = Modifier.size(54.dp),

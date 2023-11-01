@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.PhotoCamera
@@ -18,6 +19,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 
@@ -51,7 +54,7 @@ fun CameraScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
-                .padding(16.dp),
+                .padding(bottom = 16.dp),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             IconButton(
@@ -59,11 +62,13 @@ fun CameraScreen(
                     takePhoto()
                 },
                 modifier = Modifier
-                    .offset(16.dp, 16.dp)
+                    .size(50.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.PhotoCamera,
-                    contentDescription = "Take a photo"
+                    contentDescription = "Take a photo",
+                    modifier = Modifier
+                        .fillMaxSize()
                 )
             }
         }
@@ -85,4 +90,48 @@ fun CameraPreview(
         },
         modifier = modifier
     )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun cameraScreenPreview() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+
+        IconButton(
+            onClick = {
+            }
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.back),
+                contentDescription = "BackToMainScreen",
+                modifier = Modifier
+                    .padding(start = 5.dp, top = 5.dp)
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            IconButton(
+                onClick = {
+                },
+                modifier = Modifier
+                    .size(50.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PhotoCamera,
+                    contentDescription = "Take a photo",
+                    modifier = Modifier
+                        .fillMaxSize()
+                )
+            }
+        }
+    }
 }
