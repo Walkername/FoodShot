@@ -84,8 +84,9 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("HistoryScreen") {
-                        HistoryScreen()
-                        /* TODO: create design for HistoryScreen */
+                        HistoryScreen(
+                            backToMainScreen = { navController.navigate("MainScreen") }
+                        )
                     }
 
                     composable("CameraScreen") {

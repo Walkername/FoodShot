@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -23,15 +26,19 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.foodshot.ui.theme.Titan
 
 @Composable
-fun HistoryScreen() {
+fun HistoryScreen(
+    backToMainScreen: () -> Unit
+) {
     val colorStops = arrayOf(
         0.0f to Color(0xffb04847),
         0.5f to Color(0xff5b175c)
@@ -66,7 +73,7 @@ fun HistoryScreen() {
                 ) {
                     IconButton(
                         onClick = {
-                            /* TODO: pass function for back to main screen */
+                            backToMainScreen()
                         },
                         colors = IconButtonDefaults.iconButtonColors(contentColor = Color(ICON_COLOR)),
                         modifier = Modifier
@@ -137,7 +144,8 @@ fun HistoryBox() {
         Column(
             modifier = Modifier
                 .padding(top = 25.dp)
-                .fillMaxSize(),
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Top
         ) {
             HistoryCell(
@@ -149,7 +157,7 @@ fun HistoryBox() {
             HistoryCell(
                 date = "25/10/2023",
                 time = "18:10",
-                foodName = "Mushrooms",
+                foodName = "Black Mushrooms",
                 kcal = "120"
             )
             HistoryCell(
@@ -158,6 +166,18 @@ fun HistoryBox() {
                 foodName = "Orange",
                 kcal = "64"
             )
+            /*  Redraw all components is not effective!
+            *   TODO: Find another way to add new action without redrawing all
+            *   Maybe using of db in application
+            * */
+            for (i in 0..9) {
+                HistoryCell(
+                    date = "05/10/2023",
+                    time = "10:11",
+                    foodName = "Orange",
+                    kcal = "64"
+                )
+            }
         }
     }
 }
@@ -186,32 +206,44 @@ fun HistoryCell(
             Row (
                 modifier = Modifier
                     .fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = date,
                     color = Color(APP_NAME_COLOR),
                     fontSize = 15.sp,
-                    fontFamily = Titan
+                    fontFamily = Titan,
+                    modifier = Modifier
+                        .padding(start = 15.dp)
                 )
                 Text(
                     text = time,
                     color = Color(APP_NAME_COLOR),
                     fontSize = 15.sp,
-                    fontFamily = Titan
+                    fontFamily = Titan,
+                    modifier = Modifier
+                        .padding(start = 13.dp)
                 )
                 Text(
                     text = foodName,
                     color = Color(APP_NAME_COLOR),
                     fontSize = 15.sp,
-                    fontFamily = Titan
+                    fontFamily = Titan,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .padding(start = 25.dp)
+                        .width(100.dp)
                 )
                 Text(
                     text = kcal,
                     color = Color(APP_NAME_COLOR),
                     fontSize = 15.sp,
-                    fontFamily = Titan
+                    fontFamily = Titan,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(end = 25.dp)
                 )
             }
         }
@@ -221,5 +253,5 @@ fun HistoryCell(
 @Preview(showBackground = true)
 @Composable
 fun HistoryActivityPreview() {
-    HistoryScreen()
+    //HistoryScreen()
 }
