@@ -1,28 +1,26 @@
 package com.example.foodshot
 
-import android.net.Uri
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Modifier
-import coil.annotation.ExperimentalCoilApi
-import coil.compose.rememberImagePainter
+import androidx.compose.ui.graphics.asImageBitmap
 
-@OptIn(ExperimentalCoilApi::class)
 @Composable
 fun InfoScreen(
-    selectImages: List<Uri>,
+    bitmap: MutableState<Bitmap?>,
     modifier: Modifier
 ) {
     Box(
         modifier = modifier
     ) {
-        Image(
-            painter = rememberImagePainter(selectImages[0]),
-            contentDescription = "Image",
-            alignment = Alignment.Center
-        )
-
+        bitmap.value?.let { btm ->
+            Image(
+                bitmap = btm.asImageBitmap(),
+                contentDescription = "food_photo"
+            )
+        }
     }
 }
