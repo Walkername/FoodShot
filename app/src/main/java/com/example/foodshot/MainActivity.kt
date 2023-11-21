@@ -147,12 +147,13 @@ class MainActivity : ComponentActivity() {
                                 bitmap.value = ImageDecoder.decodeBitmap(source)
                             }
                         }
-
+                        /*
                         InfoScreen(
                             bitmap = bitmap,
                             modifier = Modifier
                                 .fillMaxSize()
                         )
+                        */
                     }
                 }
 
