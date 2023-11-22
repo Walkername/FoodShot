@@ -2,10 +2,16 @@ package com.example.foodshot
 
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
@@ -31,13 +37,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -63,14 +72,31 @@ class MainActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
             FoodShotTheme {
+                // GALLERY VARIABLES
+                var imageUri by remember {
+                    mutableStateOf<Uri?>(null)
+                }
+                val context = LocalContext.current;
+                val bitmap = remember {
+                    mutableStateOf<Bitmap?>(null)
+                }
+                val galleryLauncher =
+                    rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) {
+                            uri: Uri? -> imageUri = uri
+                    }
+
+                // CAMERA VARIABLES
                 val viewModel = viewModel<MainViewModel>()
+                /* TODO: to know how to convert this to format for neural network */
                 val bitmaps by viewModel.bitmaps.collectAsState()
+
                 NavHost(
                     navController = navController,
                     startDestination = "MainScreen"
                 ) {
                     composable("MainScreen") {
-                        // A surface container using the 'background' color from the theme
+
+
                         Surface(
                             modifier = Modifier.fillMaxSize(),
                             color = MaterialTheme.colorScheme.background
@@ -78,7 +104,10 @@ class MainActivity : ComponentActivity() {
                             MainScreen(
                                 { navController.navigate("HistoryScreen") },
                                 { navController.navigate("CameraScreen") },
-                                { navController.navigate("GalleryScreen") }
+                                {
+                                    galleryLauncher.launch("image/*")
+                                    navController.navigate("InfoScreen")
+                                }
                             )
                         }
                     }
@@ -90,7 +119,6 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("CameraScreen") {
-                        //requestPermissionLauncher.launch(android.Manifest.permission.CAMERA)
                         if (!hasRequiredPermission()) {
                             ActivityCompat.requestPermissions(
                                 this@MainActivity, CAMERAX_PERMISSION, 0
@@ -110,12 +138,22 @@ class MainActivity : ComponentActivity() {
                         )
                     }
 
-                    composable("GalleryScreen") {
-                        GalleryScreen(
-                            bitmaps = bitmaps,
+                    composable("InfoScreen") {
+                        imageUri?.let {
+                            if (Build.VERSION.SDK_INT < 28) {
+                                bitmap.value = MediaStore.Images.Media.getBitmap(context.contentResolver, it)
+                            } else {
+                                val source = ImageDecoder.createSource(context.contentResolver, it)
+                                bitmap.value = ImageDecoder.decodeBitmap(source)
+                            }
+                        }
+                        /*
+                        InfoScreen(
+                            bitmap = bitmap,
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .fillMaxSize()
                         )
+                        */
                     }
                 }
 
