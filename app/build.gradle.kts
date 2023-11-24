@@ -77,4 +77,7 @@ dependencies {
 
     val navVersion = "2.5.3"
     implementation("androidx.navigation:navigation-compose:$navVersion")
+
+    implementation("com.microsoft.onnxruntime:onnxruntime-android:1.12.1")
+    implementation("org.tensorflow:tensorflow-lite-task-vision:0.3.1")
 }
