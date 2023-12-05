@@ -6,6 +6,10 @@ import ai.onnxruntime.OrtSession
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.RectF
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -28,10 +32,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -50,7 +51,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
@@ -61,21 +61,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.foodshot.ui.theme.APP_NAME_COLOR
+import com.example.foodshot.ui.theme.CIRCLE_BUTTON_COLOR
 import com.example.foodshot.ui.theme.FoodShotTheme
+import com.example.foodshot.ui.theme.ICON_COLOR
 import com.example.foodshot.ui.theme.Titan
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.launch
 import java.util.Collections
-
-const val ICON_COLOR = 0xfffef1ce
-const val CIRCLE_BUTTON_COLOR = 0x14f8f4e8
-const val APP_NAME_COLOR = 0xfff8f4e8
+import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
 
@@ -100,17 +96,27 @@ class MainActivity : ComponentActivity() {
                 val galleryLauncher =
                     rememberLauncherForActivityResult(contract = ActivityResultContracts.GetContent()) { uri: Uri? ->
                         imageUri = uri
+                        navController.navigate("InfoScreen")
                     }
 
                 // CAMERA VARIABLES
                 val viewModel = viewModel<MainViewModel>()
                 val camBitmap by viewModel.bitmaps.collectAsState()
 
+                // Depends on navigation from
                 var bitmapChoice = false
 
+                // DETECTION RESULTS
                 val resultLabels = remember {
                     mutableStateOf<MutableList<String>>(mutableListOf())
                 }
+                val loadingImage = BitmapFactory.decodeResource(resources, R.drawable.loading_icon)
+                val imageBitmap = remember {
+                    mutableStateOf<Bitmap>(loadingImage)
+                }
+
+                var detectionCompleted = false
+
                 NavHost(
                     navController = navController,
                     startDestination = "MainScreen"
@@ -125,8 +131,9 @@ class MainActivity : ComponentActivity() {
                                 onClickCamera = { navController.navigate("CameraScreen") },
                                 onClickGallery = {
                                     bitmapChoice = true
+                                    detectionCompleted = false
                                     galleryLauncher.launch("image/*")
-                                    navController.navigate("InfoScreen")
+                                    // navigation to InfoScreen due to galleryLauncher block
                                 }
                             )
                         }
@@ -156,6 +163,7 @@ class MainActivity : ComponentActivity() {
                             controller = controller,
                             takePhoto = {
                                 takePhoto(controller, viewModel::onTakePhoto) {
+                                    detectionCompleted = false
                                     navController.navigate("InfoScreen")
                                 }
                             },
@@ -164,6 +172,7 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("InfoScreen") {
+                        val executor = Executors.newSingleThreadExecutor()
                         if (bitmapChoice) {
                             val context = LocalContext.current
                             imageUri?.let {
@@ -171,61 +180,48 @@ class MainActivity : ComponentActivity() {
                                     context.contentResolver.openInputStream(it)
                                 )
                             }
-                            galBitmap?.let {
-                                setViewAndDetect(it, resultLabels)
+                            val runnableDetection = Runnable {
+                                galBitmap?.let {
+                                    runObjectDetection(it, resultLabels, imageBitmap)
+                                }
+                                detectionCompleted = true
                             }
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .verticalScroll(rememberScrollState())
-                            ) {
-                                Button(onClick = { navController.navigate("MainScreen") }) {
-                                    Text(text = "Back")
-                                }
-                                galBitmap?.let { btm ->
-                                    Image(
-                                        bitmap = btm.asImageBitmap(),
-                                        contentDescription = "detected_image",
-                                        modifier = Modifier
-                                            .size(500.dp)
-                                    )
-                                }
-                                for (label in resultLabels.value) {
-                                    Text(text = label)
-                                }
+                            if (!detectionCompleted) {
+                                executor.submit(runnableDetection)
+                            } else {
+                                executor.shutdown()
                             }
+                            InfoScreen(
+                                bitmapImage = imageBitmap.value,
+                                foodLabels = resultLabels,
+                                backToPrevScreen = {
+                                    navController.navigate("MainScreen")
+                                    resultLabels.value.clear()
+                                    imageBitmap.value = loadingImage
+                                }
+                            )
                         } else {
-                            setViewAndDetect(camBitmap[0], resultLabels)
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .verticalScroll(rememberScrollState())
-                            ) {
-                                Button(onClick = { navController.navigate("MainScreen") }) {
-                                    Text(text = "Back")
-                                }
-                                Image(
-                                    bitmap = camBitmap[0].asImageBitmap(),
-                                    contentDescription = "detected_image",
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                )
-                                for (label in resultLabels.value) {
-                                    Text(text = label)
-                                }
+                            val runnableDetection = Runnable {
+                                runObjectDetection(camBitmap[0], resultLabels, imageBitmap)
+                                detectionCompleted = true
                             }
+                            if (!detectionCompleted) {
+                                executor.submit(runnableDetection)
+                            } else {
+                                executor.shutdown()
+                            }
+                            InfoScreen(
+                                bitmapImage = imageBitmap.value,
+                                foodLabels = resultLabels,
+                                backToPrevScreen = {
+                                    navController.navigate("MainScreen")
+                                    resultLabels.value.clear()
+                                    imageBitmap.value = loadingImage
+                                }
+                            )
                         }
-
-                        /*
-                        InfoScreen(
-                            bitmap = bitmapToDisplay,
-                            modifier = Modifier
-                                .fillMaxSize()
-                        )
-                        */
                     }
                 }
-
             }
         }
     }
@@ -265,7 +261,11 @@ class MainActivity : ComponentActivity() {
         )
     }
 
-    private fun runObjectDetection(bitmap: Bitmap, foodLabels: MutableState<MutableList<String>>) {
+    private fun runObjectDetection(
+        bitmap: Bitmap,
+        foodLabels: MutableState<MutableList<String>>,
+        imageBitmap: MutableState<Bitmap>
+    ) {
         val scaledBitmap = dataProcess.bitmapToScaledBitmap(bitmap)
 
         val floatBuffer = dataProcess.bitmapToFloatBuffer(scaledBitmap)
@@ -289,18 +289,69 @@ class MainActivity : ComponentActivity() {
         val resultToDisplay = results.map {
             val className = classes[it.classIndex]
 
-            val text = className
             val cal = "$className ${calories.calories[className]}"
             resultLabels.add(cal)
+
+            // Return image to initial size
+            val scaleX = bitmap.width / DataProcess.INPUT_SIZE.toFloat()
+            val scaleY = scaleX * 9f / 16f
+            val realY = bitmap.width * 9f / 16f
+            val diffY = realY - bitmap.height
+
+            val rectF = it.rectF
+            val left = rectF.left * scaleX
+            val right = rectF.right * scaleX
+            val top = rectF.top * scaleY - (diffY / 2f)
+            val bottom = rectF.bottom * scaleY - (diffY / 2f)
+
+            val newRectF = RectF(left, top, right, bottom)
+
+            DetectionResult(newRectF, className)
         }
         foodLabels.value = resultLabels
+        drawDetectionResult(bitmap, resultToDisplay, imageBitmap)
     }
 
-    private fun setViewAndDetect(bitmap: Bitmap, labels: MutableState<MutableList<String>>) {
-        // Run ODT and display result
-        // Note that we run this in the background thread to avoid blocking the app UI because
-        // ONNX object detection is a synchronised process.
-        lifecycleScope.launch(Dispatchers.Default) { runObjectDetection(bitmap, labels) }
+    private fun drawDetectionResult(
+        bitmap: Bitmap,
+        detectionResults: List<DetectionResult>,
+        imageBitmap: MutableState<Bitmap>
+    ) {
+        val outputBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(outputBitmap)
+        val pen = Paint()
+        pen.textAlign = Paint.Align.LEFT
+
+        detectionResults.forEach {
+            // draw bounding box
+            pen.color = android.graphics.Color.RED
+            pen.strokeWidth = 8F
+            pen.style = Paint.Style.STROKE
+            val box = it.boundingBox
+            canvas.drawRect(box, pen)
+
+            val tagSize = Rect(0, 0, 0, 0)
+
+            // calculate the right font size
+            pen.style = Paint.Style.FILL_AND_STROKE
+            pen.color = android.graphics.Color.YELLOW
+            pen.strokeWidth = 2F
+
+            pen.textSize = 40F
+            pen.getTextBounds(it.text, 0, it.text.length, tagSize)
+            val fontSize: Float = pen.textSize * box.width() / tagSize.width()
+
+            // adjust the font size so texts are inside the bounding box
+            if (fontSize < pen.textSize) pen.textSize = fontSize
+
+            var margin = (box.width() - tagSize.width()) / 2.0F
+            if (margin < 0F) margin = 0F
+            canvas.drawText(
+                it.text, box.left + margin,
+                box.top + tagSize.height().times(1F), pen
+            )
+        }
+        imageBitmap.value = outputBitmap
     }
 
     private fun load() { // load labels and neural model
