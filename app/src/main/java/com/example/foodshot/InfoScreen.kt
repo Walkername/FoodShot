@@ -1,5 +1,6 @@
 package com.example.foodshot
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -32,8 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
@@ -41,13 +42,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.foodshot.ui.theme.APP_NAME_COLOR
+import com.example.foodshot.ui.theme.CIRCLE_BUTTON_COLOR
+import com.example.foodshot.ui.theme.ICON_COLOR
+import com.example.foodshot.ui.theme.TRANSLUCENT_WHITE
 import com.example.foodshot.ui.theme.Titan
 
 @Composable
 fun InfoScreen(
-    //bitmapImage: MutableState<Bitmap?>,
-    //foodLabels: mutableListOf<String>(),
-    //backToPrevScreen: () -> Unit
+    bitmapImage: Bitmap?,
+    foodLabels: MutableState<MutableList<String>>,
+    backToPrevScreen: () -> Unit
 ) {
     val colorStops = arrayOf(
         0.0f to Color(0xffb04847),
@@ -83,7 +88,7 @@ fun InfoScreen(
                 ) {
                     IconButton(
                         onClick = {
-                            //backToPrevScreen()
+                            backToPrevScreen()
                         },
                         colors = IconButtonDefaults.iconButtonColors(contentColor = Color(ICON_COLOR)),
                         modifier = Modifier
@@ -107,8 +112,8 @@ fun InfoScreen(
                 )
             }
             InfoBox(
-                //bitmapImage = bitmapImage,
-                //foodLabels = foodLabels
+                bitmapImage = bitmapImage,
+                foodLabels = foodLabels
             )
         }
     }
@@ -116,8 +121,8 @@ fun InfoScreen(
 
 @Composable
 fun InfoBox(
-    //bitmapImage: MutableState<Bitmap?>,
-    //foodLabels: mutableListOf<String>()
+    bitmapImage: Bitmap?,
+    foodLabels: MutableState<MutableList<String>>
 ) {
     Column(
         modifier = Modifier
@@ -127,36 +132,29 @@ fun InfoBox(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
-        Image(
-            //bitmap = bitmapImage.value.asImageBitmap(),
-            bitmap = ImageBitmap.imageResource(R.drawable.avocado_main_pic),
-            contentDescription = "food_picture"
-        )
+        bitmapImage?.let {
+            Image(
+                bitmap = bitmapImage.asImageBitmap(),
+                contentDescription = "food_picture"
+            )
+        }
         Column(
             modifier = Modifier
                 .padding(top = 35.dp)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.Top
         ) {
-            // Below is the test data
-            //val foodLabels = mutableListOf<String>()
-            val foodLabels = mutableListOf(
-                "Avocado 87",
-                "Cucumber 21",
-                "Lemon 45",
-                "Timur Magomedov",
-                "Bolshoi"
-            )
-            if (foodLabels.isEmpty()) {
+            if (foodLabels.value.isEmpty()) {
                 Text(
                     text = "The Neural Network did not detect food in the photo ",
                     color = Color(APP_NAME_COLOR),
+                    lineHeight = 36.sp,
                     fontSize = 36.sp,
                     fontFamily = Titan,
                     textAlign = TextAlign.Center
                 )
             } else {
-                for (foodLabel in foodLabels) {
+                for (foodLabel in foodLabels.value) {
                     val foodProps = foodLabel.split(" ")
                     val foodName = foodProps[0]
                     var kcalPerHundredGrams : Int?
@@ -236,7 +234,7 @@ fun InfoCell(
                 placeholder = {
                     Text(
                         text = "Type weight",
-                        color = Color(0x7Df8f4e8), // TODO: set const for this color in Color.kt
+                        color = Color(TRANSLUCENT_WHITE),
                         fontSize = 20.sp,
                         fontFamily = Titan,
                         textAlign = TextAlign.Center
@@ -274,5 +272,5 @@ fun InfoCell(
 @Preview(showBackground = true)
 @Composable
 fun InfoScreenPreview() {
-    InfoScreen()
+    //InfoScreen()
 }
