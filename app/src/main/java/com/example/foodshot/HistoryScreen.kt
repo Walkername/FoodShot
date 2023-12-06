@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -19,6 +20,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,8 +30,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.foodshot.ui.theme.APP_NAME_COLOR
@@ -38,6 +41,7 @@ import com.example.foodshot.ui.theme.Titan
 
 @Composable
 fun HistoryScreen(
+    resultLabels: MutableList<Pair<String, MutableList<String>>>,
     backToMainScreen: () -> Unit
 ) {
     val colorStops = arrayOf(
@@ -97,14 +101,15 @@ fun HistoryScreen(
                         .padding(top = 5.dp)
                 )
             }
-
-            HistoryBox()
+            HistoryBox(resultLabels)
         }
     }
 }
 
 @Composable
-fun HistoryBox() {
+fun HistoryBox(
+    resultLabels: MutableList<Pair<String, MutableList<String>>>
+) {
     Column(
         modifier = Modifier
             .padding(top = 50.dp)
@@ -149,34 +154,22 @@ fun HistoryBox() {
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.Top
         ) {
-            HistoryCell(
-                date = "25/10/2023",
-                time = "18:53",
-                foodName = "Apple",
-                kcal = "95"
-            )
-            HistoryCell(
-                date = "25/10/2023",
-                time = "18:10",
-                foodName = "Black Mushrooms",
-                kcal = "120"
-            )
-            HistoryCell(
-                date = "05/10/2023",
-                time = "10:11",
-                foodName = "Orange",
-                kcal = "64"
-            )
-            /*  Redraw all components is not effective!
-            *   TODO: Find another way to add new action without redrawing all
-            *   Maybe using of db in application
-            * */
-            for (i in 0..9) {
+            for (dateFood in resultLabels) {
+                val dateTime = dateFood.first.split(" ")
+                val date = dateTime[0]
+                val time = dateTime[1]
+                val foodLabels = dateFood.second
+                val goods = foodLabels.map { good ->
+                    good.split(":")[0].trim()
+                }
+                val kcals = foodLabels.map { kcal ->
+                    kcal.split(":")[1].trim()
+                }
                 HistoryCell(
-                    date = "05/10/2023",
-                    time = "10:11",
-                    foodName = "Orange",
-                    kcal = "64"
+                    date = date,
+                    time = time,
+                    foodNames = goods.joinToString(),
+                    kcal = kcals
                 )
             }
         }
@@ -187,24 +180,45 @@ fun HistoryBox() {
 fun HistoryCell(
     date: String,
     time: String,
-    foodName: String,
-    kcal: String
-    /* TODO: Need to know format of data */
+    foodNames: String,
+    kcal: List<String>
 ) {
+    val cellState = remember {
+        mutableStateOf(false)
+    }
+    val cellHeight: Dp
+    val boxHeight: Dp
+    val timesToExtend = foodNames.split(",").size
+    val kcalToDisplay : String
+    if (!cellState.value) {
+        cellHeight = 40.dp
+        boxHeight = 50.dp
+        kcalToDisplay = kcal[0]
+    } else {
+        cellHeight = (40 * timesToExtend).dp
+        boxHeight = ((40 * timesToExtend + 10).dp)
+        kcalToDisplay = kcal.joinToString("\n")
+    }
     Box(
         modifier = Modifier
-            .height(50.dp)
+            .height(boxHeight)
             .fillMaxWidth()
     ) {
         Box(
             modifier = Modifier
                 .padding(top = 5.dp)
-                .height(40.dp)
+                .height(cellHeight)
                 .fillMaxWidth()
                 .clip(CircleShape)
                 .background(Color(CIRCLE_BUTTON_COLOR))
+                .toggleable(
+                    value = cellState.value,
+                    onValueChange = {
+                        cellState.value = it
+                    }
+                )
         ) {
-            Row (
+            Row(
                 modifier = Modifier
                     .fillMaxSize(),
                 horizontalArrangement = Arrangement.Start,
@@ -227,17 +241,16 @@ fun HistoryCell(
                         .padding(start = 13.dp)
                 )
                 Text(
-                    text = foodName,
+                    text = foodNames,
                     color = Color(APP_NAME_COLOR),
                     fontSize = 15.sp,
                     fontFamily = Titan,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .padding(start = 25.dp)
-                        .width(100.dp)
+                        .width(120.dp)
                 )
                 Text(
-                    text = kcal,
+                    text = kcalToDisplay,
                     color = Color(APP_NAME_COLOR),
                     fontSize = 15.sp,
                     fontFamily = Titan,
@@ -254,5 +267,7 @@ fun HistoryCell(
 @Preview(showBackground = true)
 @Composable
 fun HistoryActivityPreview() {
-    //HistoryScreen()
+    val resultLabels: MutableList<Pair<String, MutableList<String>>> =
+        mutableListOf(Pair("25-10-2023", mutableListOf("Banana 89", "Banana 89", "cucumber 13")))
+    HistoryScreen(resultLabels, backToMainScreen = {})
 }

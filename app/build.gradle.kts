@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -80,4 +81,7 @@ dependencies {
 
     implementation("com.microsoft.onnxruntime:onnxruntime-android:1.12.1")
     implementation("org.tensorflow:tensorflow-lite-task-vision:0.3.1")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2")
+    implementation("androidx.datastore:datastore:1.0.0")
 }
