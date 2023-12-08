@@ -1,5 +1,6 @@
 package com.example.foodshot
 
+import android.util.DisplayMetrics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,11 +29,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.foodshot.ui.theme.APP_NAME_COLOR
@@ -120,32 +124,45 @@ fun HistoryBox(
     ) {
         Row(
             modifier = Modifier
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .padding(start = 5.dp, end = 5.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Text(
                 text = "Date",
                 color = Color(APP_NAME_COLOR),
                 fontSize = 18.sp,
-                fontFamily = Titan
+                fontFamily = Titan,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .weight(1.5f)
             )
             Text(
                 text = "Time",
                 color = Color(APP_NAME_COLOR),
                 fontSize = 18.sp,
-                fontFamily = Titan
+                fontFamily = Titan,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .weight(1f)
             )
             Text(
                 text = "Food",
                 color = Color(APP_NAME_COLOR),
                 fontSize = 18.sp,
-                fontFamily = Titan
+                fontFamily = Titan,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .weight(2f)
             )
             Text(
                 text = "Kcal",
                 color = Color(APP_NAME_COLOR),
                 fontSize = 18.sp,
-                fontFamily = Titan
+                fontFamily = Titan,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .weight(1f)
             )
         }
         Column(
@@ -169,7 +186,7 @@ fun HistoryBox(
                 HistoryCell(
                     date = date,
                     time = time,
-                    foodNames = goods.joinToString(),
+                    foodNames = goods.joinToString("\n"),
                     kcal = kcals
                 )
             }
@@ -189,10 +206,16 @@ fun HistoryCell(
     }
     val cellHeight: Dp
     val boxHeight: Dp
-    val foodList = foodNames.split(",")
+    val foodList = foodNames.split("\n")
     var timesToExtend = foodList.size
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val foodBoundsWidth = screenWidth / 5.5f * 2f
+    val fontsizeToDp = with(LocalDensity.current) {
+        15f.toDp()
+    }
     for (food in foodList) {
-        if (food.length > 9) {
+        if (fontsizeToDp * food.length > foodBoundsWidth) {
             timesToExtend *= 2
         }
     }
@@ -230,7 +253,8 @@ fun HistoryCell(
         ) {
             Row(
                 modifier = Modifier
-                    .fillMaxSize(),
+                    .fillMaxSize()
+                    .padding(start = 5.dp, end = 5.dp),
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -239,16 +263,18 @@ fun HistoryCell(
                     color = Color(APP_NAME_COLOR),
                     fontSize = 15.sp,
                     fontFamily = Titan,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .padding(start = 15.dp)
+                        .weight(1.5f)
                 )
                 Text(
                     text = time,
                     color = Color(APP_NAME_COLOR),
                     fontSize = 15.sp,
                     fontFamily = Titan,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .padding(start = 13.dp)
+                        .weight(1f)
                 )
                 Text(
                     text = foodNames,
@@ -256,19 +282,18 @@ fun HistoryCell(
                     fontSize = 15.sp,
                     fontFamily = Titan,
                     overflow = textOverflow,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .padding(start = 25.dp)
-                        .width(120.dp)
+                        .weight(2f)
                 )
                 Text(
                     text = kcalToDisplay,
                     color = Color(APP_NAME_COLOR),
                     fontSize = 15.sp,
                     fontFamily = Titan,
-                    textAlign = TextAlign.End,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(end = 25.dp)
+                        .weight(1f)
                 )
             }
         }
@@ -278,7 +303,64 @@ fun HistoryCell(
 @Preview(showBackground = true)
 @Composable
 fun HistoryActivityPreview() {
-    val resultLabels: MutableList<Pair<String, MutableList<String>>> =
-        mutableListOf(Pair("25-10-2023", mutableListOf("Banana 89", "Banana 89", "cucumber 13")))
-    HistoryScreen(resultLabels, backToMainScreen = {})
+    val colorStops = arrayOf(
+        0.0f to Color(0xffb04847),
+        0.5f to Color(0xff5b175c)
+    )
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.linearGradient(
+                    colorStops = colorStops,
+                    start = Offset(0f, Float.POSITIVE_INFINITY),
+                    end = Offset(Float.POSITIVE_INFINITY, 0f)
+                )
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(
+                    start = 25.dp,
+                    end = 25.dp,
+                    top = 45.dp,
+                    bottom = 45.dp
+                )
+        ) {
+            Box {
+                Box(
+                    modifier = Modifier
+                        .size(50.dp)
+                        .clip(CircleShape)
+                        .background(Color(CIRCLE_BUTTON_COLOR))
+
+                ) {
+                    IconButton(
+                        onClick = {
+
+                        },
+                        colors = IconButtonDefaults.iconButtonColors(contentColor = Color(ICON_COLOR)),
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.back),
+                            contentDescription = "BackToMainScreen"
+                        )
+                    }
+                }
+                Text(
+                    text = "History",
+                    color = Color(APP_NAME_COLOR),
+                    fontSize = 36.sp,
+                    fontFamily = Titan,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 5.dp)
+                )
+            }
+            HistoryBox(mutableListOf(Pair("25-10-2023 15:30", mutableListOf("Pomegranate : 83"))))
+        }
+    }
 }
