@@ -1,6 +1,5 @@
 package com.example.foodshot
 
-import android.util.DisplayMetrics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
@@ -21,15 +19,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -135,7 +135,7 @@ fun HistoryBox(
                 fontFamily = Titan,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .weight(1.5f)
+                    .weight(1.6f)
             )
             Text(
                 text = "Time",
@@ -144,7 +144,7 @@ fun HistoryBox(
                 fontFamily = Titan,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(0.9f)
             )
             Text(
                 text = "Food",
@@ -207,31 +207,40 @@ fun HistoryCell(
     val cellHeight: Dp
     val boxHeight: Dp
     val foodList = foodNames.split("\n")
-    var timesToExtend = foodList.size
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-    val foodBoundsWidth = screenWidth / 5.5f * 2f
-    val fontsizeToDp = with(LocalDensity.current) {
-        15f.toDp()
-    }
-    for (food in foodList) {
-        if (fontsizeToDp * food.length > foodBoundsWidth) {
-            timesToExtend *= 2
-        }
-    }
-    val kcalToDisplay : String
-    val textOverflow : TextOverflow
+    val timesToExpand = foodList.size
+    val kcalToDisplay: String
+    val textOverflow: TextOverflow
+    val dateText: String
+    val timeText: String
+    val foodWeight: Float
+    val foodFont: TextUnit
+    val kcalWeight: Float
+    val kcalFont: TextUnit
+
     if (!cellState.value) {
+        dateText = date
+        timeText = time
+        foodWeight = 2f
+        foodFont = 15.sp
+        kcalWeight = 1f
+        kcalFont = 15.sp
         cellHeight = 40.dp
         boxHeight = 50.dp
         kcalToDisplay = kcal[0]
         textOverflow = TextOverflow.Ellipsis
     } else {
-        cellHeight = (40 * timesToExtend).dp
-        boxHeight = ((40 * timesToExtend + 10).dp)
+        dateText = ""
+        timeText = ""
+        foodWeight = 2f
+        foodFont = 18.sp
+        kcalWeight = 0.5f
+        kcalFont = 18.sp
+        cellHeight = (40 * timesToExpand).dp
+        boxHeight = ((40 * timesToExpand + 10).dp)
         kcalToDisplay = kcal.joinToString("\n")
         textOverflow = TextOverflow.Clip
     }
+
     Box(
         modifier = Modifier
             .height(boxHeight)
@@ -251,6 +260,7 @@ fun HistoryCell(
                     }
                 )
         ) {
+
             Row(
                 modifier = Modifier
                     .fillMaxSize()
@@ -258,42 +268,45 @@ fun HistoryCell(
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = date,
-                    color = Color(APP_NAME_COLOR),
-                    fontSize = 15.sp,
-                    fontFamily = Titan,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .weight(1.5f)
-                )
-                Text(
-                    text = time,
-                    color = Color(APP_NAME_COLOR),
-                    fontSize = 15.sp,
-                    fontFamily = Titan,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                )
+                if (!cellState.value) {
+                    Text(
+                        text = dateText,
+                        color = Color(APP_NAME_COLOR),
+                        fontSize = 15.sp,
+                        fontFamily = Titan,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .weight(1.6f)
+                    )
+                    Text(
+                        text = timeText,
+                        color = Color(APP_NAME_COLOR),
+                        fontSize = 15.sp,
+                        fontFamily = Titan,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .weight(0.8f)
+                    )
+                }
                 Text(
                     text = foodNames,
                     color = Color(APP_NAME_COLOR),
-                    fontSize = 15.sp,
+                    fontSize = foodFont,
                     fontFamily = Titan,
                     overflow = textOverflow,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .weight(2f)
+                        .fillMaxWidth()
+                        .weight(foodWeight)
                 )
                 Text(
                     text = kcalToDisplay,
                     color = Color(APP_NAME_COLOR),
-                    fontSize = 15.sp,
+                    fontSize = kcalFont,
                     fontFamily = Titan,
                     textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .weight(1f)
+                        .weight(kcalWeight)
                 )
             }
         }
@@ -360,7 +373,15 @@ fun HistoryActivityPreview() {
                         .padding(top = 5.dp)
                 )
             }
-            HistoryBox(mutableListOf(Pair("25-10-2023 15:30", mutableListOf("Pomegranate : 83"))))
+            HistoryBox(
+                mutableListOf(
+                    Pair(
+                        "25-10-2023 15:30",
+                        mutableListOf("Pomegranate : 83", "Garden Asparagus : 331")
+                    ),
+                    Pair("25-10-2023 15:32", mutableListOf("Garden Asparagus : 331"))
+                )
+            )
         }
     }
 }
