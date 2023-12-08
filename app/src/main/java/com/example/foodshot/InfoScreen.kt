@@ -155,11 +155,11 @@ fun InfoBox(
                 )
             } else {
                 for (foodLabel in foodLabels.value) {
-                    val foodProps = foodLabel.split(" ")
-                    val foodName = foodProps[0]
+                    val foodProps = foodLabel.split(":")
+                    val foodName = foodProps[0].trim()
                     var kcalPerHundredGrams : Int?
                     if (foodProps.size != 1) {
-                        kcalPerHundredGrams = foodProps[1].toIntOrNull()
+                        kcalPerHundredGrams = foodProps[1].trim().toIntOrNull()
 
                         if (kcalPerHundredGrams != null) {
                             InfoCell(

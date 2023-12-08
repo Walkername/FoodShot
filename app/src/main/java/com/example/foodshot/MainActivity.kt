@@ -3,6 +3,7 @@ package com.example.foodshot
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import ai.onnxruntime.OrtSession
+import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,6 +11,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.RectF
+import android.icu.text.SimpleDateFormat
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -40,11 +42,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -70,7 +74,9 @@ import com.example.foodshot.ui.theme.CIRCLE_BUTTON_COLOR
 import com.example.foodshot.ui.theme.FoodShotTheme
 import com.example.foodshot.ui.theme.ICON_COLOR
 import com.example.foodshot.ui.theme.Titan
+import kotlinx.coroutines.launch
 import java.util.Collections
+import java.util.Date
 import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
@@ -84,10 +90,20 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val dataStoreManager = ProtoDataStoreManager(this)
         load()
         setContent {
             val navController = rememberNavController()
             FoodShotTheme {
+                // ACTIONS DATA
+                val labelState = remember {
+                    mutableStateOf(mutableListOf<Pair<String, MutableList<String>>>())
+                }
+                LaunchedEffect(key1 = true) {
+                    dataStoreManager.getActions().collect {
+                        labelState.value = it.resultLabels
+                    }
+                }
                 // GALLERY VARIABLES
                 var imageUri by remember {
                     mutableStateOf<Uri?>(null)
@@ -141,6 +157,7 @@ class MainActivity : ComponentActivity() {
 
                     composable("HistoryScreen") {
                         HistoryScreen(
+                            resultLabels = labelState.value,
                             backToMainScreen = { navController.navigate("MainScreen") }
                         )
                     }
@@ -172,58 +189,80 @@ class MainActivity : ComponentActivity() {
                     }
 
                     composable("InfoScreen") {
-                        val executor = Executors.newSingleThreadExecutor()
-                        if (bitmapChoice) {
-                            val context = LocalContext.current
-                            imageUri?.let {
-                                galBitmap = BitmapFactory.decodeStream(
-                                    context.contentResolver.openInputStream(it)
-                                )
-                            }
-                            val runnableDetection = Runnable {
-                                galBitmap?.let {
-                                    runObjectDetection(it, resultLabels, imageBitmap)
-                                }
-                                detectionCompleted = true
-                            }
-                            if (!detectionCompleted) {
-                                executor.submit(runnableDetection)
-                            } else {
-                                executor.shutdown()
-                            }
-                            InfoScreen(
-                                bitmapImage = imageBitmap.value,
-                                foodLabels = resultLabels,
-                                backToPrevScreen = {
-                                    navController.navigate("MainScreen")
-                                    resultLabels.value.clear()
-                                    imageBitmap.value = loadingImage
-                                }
-                            )
-                        } else {
-                            val runnableDetection = Runnable {
-                                runObjectDetection(camBitmap[0], resultLabels, imageBitmap)
-                                detectionCompleted = true
-                            }
-                            if (!detectionCompleted) {
-                                executor.submit(runnableDetection)
-                            } else {
-                                executor.shutdown()
-                            }
-                            InfoScreen(
-                                bitmapImage = imageBitmap.value,
-                                foodLabels = resultLabels,
-                                backToPrevScreen = {
-                                    navController.navigate("MainScreen")
-                                    resultLabels.value.clear()
-                                    imageBitmap.value = loadingImage
-                                }
+                        val context = LocalContext.current
+
+                        imageUri?.let {
+                            galBitmap = BitmapFactory.decodeStream(
+                                context.contentResolver.openInputStream(it)
                             )
                         }
+                        val imgForDetection = if (bitmapChoice) galBitmap else camBitmap[0]
+                        val executor = Executors.newSingleThreadExecutor()
+                        val runnableDetection = Runnable {
+                            imgForDetection?.let {
+                                runObjectDetection(it, resultLabels, imageBitmap)
+                            }
+                            detectionCompleted = true
+                        }
+                        if (!detectionCompleted) {
+                            executor.submit(runnableDetection)
+                        } else {
+                            executor.shutdown()
+                        }
+                        val coroutine = rememberCoroutineScope()
+                        InfoScreen(
+                            bitmapImage = imageBitmap.value,
+                            foodLabels = resultLabels,
+                            backToPrevScreen = {
+                                navController.navigate("MainScreen")
+                                if (resultLabels.value.isNotEmpty()) {
+                                    val dateTime = SimpleDateFormat("dd-MM-yyyy HH:mm").format(Date())
+                                    val updatedLabels = addToHistoryList(labelState.value, resultLabels.value, dateTime)
+                                    coroutine.launch {
+                                        dataStoreManager.saveActions(
+                                            ActionsData(
+                                                resultLabels = updatedLabels
+                                            )
+                                        )
+                                    }
+                                }
+                                resultLabels.value.clear()
+                                imageBitmap.value = loadingImage
+                            }
+                        )
                     }
                 }
             }
         }
+    }
+
+    private fun addToHistoryList (
+        currentLabels: MutableList<Pair<String, MutableList<String>>>,
+        newLabels: MutableList<String>,
+        dateTime: String
+    ) : MutableList<Pair<String, MutableList<String>>> {
+        var newList = currentLabels.toMutableList()
+        val timeAndLabels = Pair(dateTime, newLabels.toMutableList())
+        newList.add(0, timeAndLabels)
+        if (newList.size > 10) {
+            newList = newList.subList(0, 10)
+        }
+        return newList
+    }
+
+    private fun selectImgToDetect(
+        context: Context,
+        bitmapChoice: Boolean,
+        imageUri: Uri?,
+        camBitmap: Bitmap
+    ): Bitmap? {
+        var galBitmap: Bitmap? = null
+        imageUri?.let {
+            galBitmap = BitmapFactory.decodeStream(
+                context.contentResolver.openInputStream(it)
+            )
+        }
+        return if (bitmapChoice) galBitmap else camBitmap
     }
 
     private fun hasRequiredPermission(): Boolean {
@@ -289,7 +328,7 @@ class MainActivity : ComponentActivity() {
         val resultToDisplay = results.map {
             val className = classes[it.classIndex]
 
-            val cal = "$className ${calories.calories[className]}"
+            val cal = "$className : ${calories.calories[className]}"
             resultLabels.add(cal)
 
             // Return image to initial size
