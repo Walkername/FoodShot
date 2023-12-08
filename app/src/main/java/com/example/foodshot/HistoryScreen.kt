@@ -189,7 +189,13 @@ fun HistoryCell(
     }
     val cellHeight: Dp
     val boxHeight: Dp
-    val timesToExtend = foodNames.split(",").size
+    val foodList = foodNames.split(",")
+    var timesToExtend = foodList.size
+    for (food in foodList) {
+        if (food.length > 9) {
+            timesToExtend *= 2
+        }
+    }
     val kcalToDisplay : String
     val textOverflow : TextOverflow
     if (!cellState.value) {
