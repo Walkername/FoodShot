@@ -215,14 +215,16 @@ class MainActivity : ComponentActivity() {
                             foodLabels = resultLabels,
                             backToPrevScreen = {
                                 navController.navigate("MainScreen")
-                                val dateTime = SimpleDateFormat("dd-MM-yyyy HH:mm").format(Date())
-                                val updatedLabels = addToHistoryList(labelState.value, resultLabels.value, dateTime)
-                                coroutine.launch {
-                                    dataStoreManager.saveActions(
-                                        ActionsData(
-                                            resultLabels = updatedLabels
+                                if (resultLabels.value.isNotEmpty()) {
+                                    val dateTime = SimpleDateFormat("dd-MM-yyyy HH:mm").format(Date())
+                                    val updatedLabels = addToHistoryList(labelState.value, resultLabels.value, dateTime)
+                                    coroutine.launch {
+                                        dataStoreManager.saveActions(
+                                            ActionsData(
+                                                resultLabels = updatedLabels
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                                 resultLabels.value.clear()
                                 imageBitmap.value = loadingImage

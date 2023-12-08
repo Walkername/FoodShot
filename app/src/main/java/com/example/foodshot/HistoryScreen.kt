@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -190,14 +191,17 @@ fun HistoryCell(
     val boxHeight: Dp
     val timesToExtend = foodNames.split(",").size
     val kcalToDisplay : String
+    val textOverflow : TextOverflow
     if (!cellState.value) {
         cellHeight = 40.dp
         boxHeight = 50.dp
         kcalToDisplay = kcal[0]
+        textOverflow = TextOverflow.Ellipsis
     } else {
         cellHeight = (40 * timesToExtend).dp
         boxHeight = ((40 * timesToExtend + 10).dp)
         kcalToDisplay = kcal.joinToString("\n")
+        textOverflow = TextOverflow.Clip
     }
     Box(
         modifier = Modifier
@@ -245,6 +249,7 @@ fun HistoryCell(
                     color = Color(APP_NAME_COLOR),
                     fontSize = 15.sp,
                     fontFamily = Titan,
+                    overflow = textOverflow,
                     modifier = Modifier
                         .padding(start = 25.dp)
                         .width(120.dp)
